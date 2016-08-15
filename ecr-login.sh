@@ -9,6 +9,10 @@ function usage {
     exit 1
 }
 
+function log {
+    echo $(date -u) $1
+}
+
 while [[ $# > 1 ]]
 do
 key="$1"
@@ -54,23 +58,23 @@ if [ -z "$REGION" ]; then
 fi
 
 if [[ -z "$INTERVAL" ]]; then
-    echo "Custom interval not provided, defaulting to 21600 seconds - 6 hours"
+    log "Custom interval not provided, defaulting to 21600 seconds - 6 hours"
     INTERVAL=21600
 fi
 
 while true; do
     for ACCOUNT_NUM in $REGISTRIES
     do
-        echo "Login started for account: $ACCOUNT_NUM"
+        log "Login started for account: $ACCOUNT_NUM"
         ECR_AUTH=$(aws ecr get-authorization-token --region $REGION --registry-ids $ACCOUNT_NUM --output json)
 
         AUTH_TOKEN=$(echo $ECR_AUTH | jq -r '.authorizationData[0].authorizationToken')
         ENDPOINT=$(echo $ECR_AUTH | jq -r '.authorizationData[0].proxyEndpoint')
 
-        echo "Endpoint found: $ENDPOINT"
+        log "Endpoint found: $ENDPOINT"
 
         if [[ -z "$AUTH_TOKEN" || -z "$ENDPOINT" ]]; then
-            echo "Unable to locate ECR login auth information"
+            log "Unable to locate ECR login auth information"
             exit 1
         fi
 
@@ -79,12 +83,12 @@ while true; do
 
         # If a dockercfg file doesn't already exist (odd), we can just write and exit
         if [[ ! -f $FILE_LOCATION || ! -s $FILE_LOCATION ]]; then
-            echo "Docker config does not exist in file location, creating file"
+            log "Docker config does not exist in file location, creating file"
             echo "$ECR_JSON" > $FILE_LOCATION
             continue;
         fi
 
-        echo "Existing Docker config found, updating file"
+        log "Existing Docker config found, updating file"
 
         # Otherwise, need to append or modify the new config to existing
         EXISTING_CFG=$(cat $FILE_LOCATION)
@@ -92,9 +96,9 @@ while true; do
 
         echo $NEW_CONFIG > $FILE_LOCATION
 
-        echo "Done credential update for account: $ACCOUNT_NUM"
+        log "Done credential update for account: $ACCOUNT_NUM"
     done
 
-    echo "Sleeping for $INTERVAL"
+    log "Sleeping for $INTERVAL"
     sleep $INTERVAL
 done
