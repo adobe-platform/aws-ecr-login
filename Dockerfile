@@ -1,4 +1,4 @@
-FROM       alpine:3.3
+FROM       alpine:3.4
 MAINTAINER AdobePlatform <fuller@adobe.com>
 
 ENV     SHELL /bin/bash
