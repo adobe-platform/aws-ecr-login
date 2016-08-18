@@ -84,6 +84,8 @@ while true; do
         # If a dockercfg file doesn't already exist (odd), we can just write and exit
         if [[ ! -f $FILE_LOCATION || ! -s $FILE_LOCATION ]]; then
             log "Docker config does not exist in file location, creating file"
+
+            mkdir -p "$(dirname "$FILE_LOCATION")"
             echo "$ECR_JSON" > $FILE_LOCATION
             continue;
         fi
