@@ -62,6 +62,8 @@ if [[ -z "$INTERVAL" ]]; then
     INTERVAL=21600
 fi
 
+JSON_LOCATION="$FILE_LOCATION/.docker/config.json"
+
 while true; do
     for ACCOUNT_NUM in $REGISTRIES
     do
@@ -74,32 +76,36 @@ while true; do
         log "Endpoint found: $ENDPOINT"
 
         if [[ -z "$AUTH_TOKEN" || -z "$ENDPOINT" ]]; then
-            log "Unable to locate ECR login auth information"
-            exit 1
+            log "Unable to locate ECR login auth information for account: $ACCOUNT_NUM. Skipping..."
+            continue;
         fi
 
         ECR_JSON="{\"auths\": {\"$ENDPOINT\": {\"auth\": \"$AUTH_TOKEN\",\"email\": \"none\"}}}"
         ECR_JSON_PLAIN="{\"auth\": \"$AUTH_TOKEN\",\"email\": \"none\"}"
 
         # If a dockercfg file doesn't already exist (odd), we can just write and exit
-        if [[ ! -f $FILE_LOCATION || ! -s $FILE_LOCATION ]]; then
-            log "Docker config does not exist in file location, creating file"
+        if [[ ! -f $JSON_LOCATION || ! -s $JSON_LOCATION ]]; then
+            log "Docker config does not exist at $JSON_LOCATION, creating file"
 
-            mkdir -p "$(dirname "$FILE_LOCATION")"
-            echo "$ECR_JSON" > $FILE_LOCATION
+            mkdir -p "$(dirname "$JSON_LOCATION")"
+            echo "$ECR_JSON" > $JSON_LOCATION
             continue;
         fi
 
-        log "Existing Docker config found, updating file"
+        log "Existing Docker config found at $JSON_LOCATION, updating file"
 
         # Otherwise, need to append or modify the new config to existing
-        EXISTING_CFG=$(cat $FILE_LOCATION)
+        EXISTING_CFG=$(cat $JSON_LOCATION)
         NEW_CONFIG=$(echo $EXISTING_CFG | jq ".auths[\"$ENDPOINT\"]=$ECR_JSON_PLAIN")
 
-        echo $NEW_CONFIG > $FILE_LOCATION
+        echo $NEW_CONFIG > $JSON_LOCATION
 
         log "Done credential update for account: $ACCOUNT_NUM"
     done
+
+    # Create the final .tar.gz
+    log "Creating Docker tar at $FILE_LOCATION/docker.tar.gz"
+    cd $FILE_LOCATION && tar czf docker.tar.gz .docker
 
     log "Sleeping for $INTERVAL"
     sleep $INTERVAL

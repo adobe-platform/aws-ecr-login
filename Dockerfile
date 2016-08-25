@@ -8,6 +8,7 @@ RUN apk update && \
     apk add \
       bash \
       curl \
+      tar \
       'jq' \
       'python<3.0' \
       'py-pip<8.2.0' \
